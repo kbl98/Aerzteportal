@@ -3,25 +3,27 @@ from .models import DoctorModel,PatientModel
 from .models import AppointmentModel
 from django.contrib.auth.models import User
 
-class CurrentUserSerializer(serializers.Serializer):
+class CurrentUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name','id')
+        fields = ('username', 'first_name', 'last_name','id','password')
 
 
-class DoctorSerializer(serializers.Serializer):
-   doctor=CurrentUserSerializer
+class DoctorSerializer(serializers.ModelSerializer):
+   doctor=CurrentUserSerializer()
    class Meta:
       model=DoctorModel
-      fields=('id','speciality','title','last_name','first_name')
+      fields=('id','speciality','title','doctor')
 
-class PatientSerializer(serializers.Serializer):
-    patient=CurrentUserSerializer
+class PatientSerializer(serializers.ModelSerializer):
+    patient=CurrentUserSerializer()
     class Meta:
-        fields=('id','last_name','first_name')
+        model=PatientModel
+        fields=('id','patient')
 
-class AppointmentSerializer(serializers.Serializer):
-    patient=CurrentUserSerializer
-    doctor=CurrentUserSerializer
+class AppointmentSerializer(serializers.ModelSerializer):
+    patient=PatientSerializer()
+    doctor=DoctorSerializer()
     class Meta:
         model=AppointmentModel
+        fields=('id','created_at','description','date','time','doctor','patient')
