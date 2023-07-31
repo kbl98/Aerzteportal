@@ -70,11 +70,10 @@ class Patients(APIView):
         Create new Patient-User with passing firstname,lastname,password,username in JSON-request
         """
         data=request.data
-        newUser=User.objects.create(first_name=data.get('firstname'),last_name=data.get('lastname'),username=data.get('username'),password=data.get('password'))
-        userSerializer=CurrentUserSerializer(newUser)
-        
+        password=data.get('password')
+        newUser=User.objects.create(first_name=data.get('firstname'),last_name=data.get('lastname'),username=data.get('username'),)
+        newUser.set_password(password)
         newUser.save()
-       
         newPatient=PatientModel.objects.create()
         newPatient.patient=newUser
         newPatient.save()
@@ -100,23 +99,23 @@ class PatientDetail(APIView):
 class Appointments(APIView):
     permission_classes = [permissions.IsAuthenticated]
     """
-    On get-request User has to send the user id, to specify, which appointments can be shown
+    On get-request User has to be logged, to specify, which appointments can be shown
     For post the doctorID and patientID, and all necessary info about appointment (date yyyy-mm-dd,time hh:mm,description) have to be send
     
     """
     def get(self, request, format=None):
-        id=request.data.get('id')
-        selected_user = User.objects.filter(id=id).first()
+        #id=request.data.get('id')
+       # selected_user = User.objects.filter(id=id).first()
         
-        if selected_user:
-            appointments=AppointmentModel.objects.filter(Q(patient__patient=selected_user) | Q(doctor__doctor=selected_user))
-            print (appointments)
+       # if selected_user:
+        appointments=AppointmentModel.objects.filter(Q(patient__patient=self.request.user) | Q(doctor__doctor=self.request.user))
+        if appointments.exists:
             serializer=AppointmentSerializer(appointments,many=True)
             
             return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
         else:
-            return Response({"status": "error", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-       
+            return Response({"message":"No appointments"})
+
     def post(self, request,  *args, **kwargs):
         data=request.data
         appointment=AppointmentModel.objects.create(date=data['date'],time=data['time'],description=data['description'])
