@@ -9,12 +9,13 @@ from .serializers import DoctorSerializer,PatientSerializer
 from .serializers import CurrentUserSerializer,AppointmentSerializer
 from rest_framework import status
 from django.db.models import Q
-
+from rest_framework import permissions
 
 
 
 # Create your views here.
 class Doctors(APIView):
+  
     def get(self, request, format=None):
         doctors=DoctorModel.objects.all()
         serializer=DoctorSerializer(doctors,many=True)
@@ -25,21 +26,23 @@ class Doctors(APIView):
         Create new Doctor-User with passing firstname,lastname,password,username,title,speciality in JSON-request
         """
         data=request.data
-        newUser=User.objects.create(first_name=data.get('firstname'),last_name=data.get('lastname'),username=data.get('username'),password=data.get('password'))
-        userSerializer=CurrentUserSerializer(newUser)
-        
-        newUser.save()
-       
-        newDoctor=DoctorModel.objects.create(title=data.get('title'),speciality=data.get('speciality'))
-        newDoctor.doctor=newUser
-        newDoctor.save()
-        serializer=DoctorSerializer(newDoctor)
-        if serializer.is_valid:   
-            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        serializer = CurrentUserSerializer (data=data)
+        if serializer.is_valid():
+            newUser = serializer.save()
+            user_data = CurrentUserSerializer(newUser).data
+            data['doctor'] = newUser.pk  
+            doc_serializer = DoctorSerializer(data=data)
+            if doc_serializer.is_valid():
+                new_doctor = doc_serializer.save()
+                return Response({"status": "success", "data": doc_serializer.data}, status=status.HTTP_200_OK)
+            else:
+                newUser.delete()
+                return Response({"status": "error", "data": doc_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"status": "error", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
 class DoctorDetail(APIView):
+   
     """
     For delete pk of doctor-object has to be send in url
     """
@@ -54,6 +57,8 @@ class DoctorDetail(APIView):
 
 
 class Patients(APIView):
+    
+
     def get(self, request, format=None):
         patients=PatientModel.objects.all()
         serializer=PatientSerializer(patients,many=True)
@@ -80,6 +85,7 @@ class Patients(APIView):
             return Response({"status": "error", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class PatientDetail(APIView):
+    
     def delete(self,request,pk,format=None):
         """
         Delete one Patient with sending id at request 'patients/id/'
@@ -92,6 +98,7 @@ class PatientDetail(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 class Appointments(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     """
     On get-request User has to send the user id, to specify, which appointments can be shown
     For post the doctorID and patientID, and all necessary info about appointment (date yyyy-mm-dd,time hh:mm,description) have to be send
@@ -125,6 +132,7 @@ class Appointments(APIView):
             return Response({"status": "error", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class AppointmentDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     """
     delete appointment on sending pk of appointment that has to be deleted
     """

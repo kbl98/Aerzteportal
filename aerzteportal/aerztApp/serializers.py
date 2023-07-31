@@ -6,14 +6,31 @@ from django.contrib.auth.models import User
 class CurrentUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name','id','password')
-
+        fields = ('username', 'first_name', 'last_name','id')
+    
+    def create(self, validated_data):
+        password = validated_data.get('password')
+        user = User(**validated_data)
+        user.set_password(password)  # Passwort hashen
+        user.save()
+        return user
 
 class DoctorSerializer(serializers.ModelSerializer):
-   doctor=CurrentUserSerializer()
-   class Meta:
+    #doctor=CurrentUserSerializer()
+    class Meta:
       model=DoctorModel
       fields=('id','speciality','title','doctor')
+
+    def create(self, validated_data):
+
+        doctor_data = {
+            'title': validated_data.get('title'),
+            'speciality': validated_data.get('speciality'),
+            'doctor': validated_data.get('doctor'),
+        }
+        new_doctor = DoctorModel.objects.create(**doctor_data)
+        new_doctor.save()
+        return new_doctor
 
 class PatientSerializer(serializers.ModelSerializer):
     patient=CurrentUserSerializer()
