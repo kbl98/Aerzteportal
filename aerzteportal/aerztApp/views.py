@@ -25,7 +25,7 @@ class Doctors(APIView):
         """
         Create new Doctor-User with passing firstname,lastname,password,username,title,speciality in JSON-request
         """
-        data=request.data
+        data=request.data.copy()
         serializer = CurrentUserSerializer (data=data)
         if serializer.is_valid():
             newUser = serializer.save()
